@@ -10,6 +10,8 @@ UseDNS no
 
 # Limited access
 PermitRootLogin no
+PermitTunnel no
+AllowAgentForwarding no
 X11Forwarding no
 AllowTcpForwarding no
 

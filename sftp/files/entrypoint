@@ -1,0 +1,77 @@
+#!/bin/bash
+set -Eeo pipefail
+
+echo $AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY > /etc/passwd-s3fs
+chmod 600 /etc/passwd-s3fs
+
+function log() {
+    echo "[$0] $*" >&2
+}
+
+AWS_S3_PARAMS=''
+MOUNT_OPTIONS=''
+if [ -n "$BUCKET_NAME" ]; then
+    if [ -n "$BUCKET_ENDPOINT_URL" ]; then
+        AWS_S3_PARAMS="--endpoint-url=$BUCKET_ENDPOINT_URL"
+        aws s3 ${AWS_S3_PARAMS} mb s3://$BUCKET_NAME
+        # use s3fs with a non-Amazon S3 implementation, specify the URL and path-style requests:
+        MOUNT_OPTIONS=" -o url=$BUCKET_ENDPOINT_URL,use_path_request_style"
+    fi
+    log "Making sure prefix home/ in bucket ${BUCKET_NAME} exists"
+    aws s3api ${AWS_S3_PARAMS} put-object --bucket ${BUCKET_NAME} --key home/ \
+        --metadata uid=0,gid=0,mode=493 --content-type application/x-directory
+    log "Making sure prefix config/ in bucket ${BUCKET_NAME} exists"
+    aws s3api ${AWS_S3_PARAMS} put-object --bucket ${BUCKET_NAME} --key config/ \
+        --metadata uid=0,gid=0,mode=493 --content-type application/x-directory
+
+    log "Mounting s3://$BUCKET_NAME/home to /home"
+    s3fs $BUCKET_NAME:/home/ /home -o nonempty,noexec,allow_other,umask=022 $MOUNT_OPTIONS
+    
+    log "Mounting s3://$BUCKET_NAME/config to /mnt/config"
+    mkdir -p /mnt/config
+    s3fs $BUCKET_NAME:/config/ /mnt/config -o nonempty,noexec,allow_other,mp_umask=022 $MOUNT_OPTIONS
+    log "Link /mnt/config/sshx to /etc/sshx"
+    mkdir -p /mnt/config/sshx && ln -s /mnt/config/sshx /etc/sshx
+fi
+
+# shellcheck disable=2154
+trap 's=$?; echo "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
+
+# Generate unique ssh keys for this container, if needed
+if [ ! -f /etc/sshx/ssh_host_ed25519_key ]; then
+    ssh-keygen -t ed25519 -f /etc/sshx/ssh_host_ed25519_key -N ''
+fi
+if [ ! -f /etc/sshx/ssh_host_rsa_key ]; then
+    ssh-keygen -t rsa -b 4096 -f /etc/sshx/ssh_host_rsa_key -N ''
+fi
+
+# Paths
+userConfPath="/mnt/config/users.conf"
+userConfFinalPath="/var/run/sftp/users.conf"
+
+reArgSkip='^([[:blank:]]*#.*|[[:blank:]]*)$' # comment or empty line
+
+# Create users on first run
+if [ ! -f "$userConfFinalPath" ]; then
+    mkdir -p "$(dirname $userConfFinalPath)"
+
+    if [ -f "$userConfPath" ]; then
+        # Append mounted config to final config
+        grep -v -E "$reArgSkip" < "$userConfPath" > "$userConfFinalPath"
+    fi
+
+    # Check that we have users in config
+    if [ -f "$userConfFinalPath" ] && [ "$(wc -l < "$userConfFinalPath")" -gt 0 ]; then
+        # Import users from final conf file
+        while IFS= read -r user || [[ -n "$user" ]]; do
+            create-sftp-user "$user"
+        done < "$userConfFinalPath"
+    fi
+fi
+
+# Allow running other programs, e.g. bash
+if [ $# -eq 0 ] || [ "${1#-}" != "$1" ]; then
+  set -- supervisord "$@"
+fi
+
+exec "$@"

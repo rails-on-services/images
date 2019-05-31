@@ -1,6 +1,6 @@
 FROM atmoz/sftp
 
-ARG os_base_packages='linux-image-4.9.0-8-amd64 kmod s3fs'
+ARG os_base_packages='linux-image-4.9.0-8-amd64 kmod s3fs supervisor'
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get update \
  && apt-get upgrade --yes \
@@ -18,6 +18,10 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends
  && apt-get clean \
  && echo 'set editing-mode vi' > /root/.inputrc
 
-ENV MOUNT_DIR=/home
-COPY entrypoint entrypoint
-COPY sshd_config /etc/ssh/sshd_config
+ENV MOUNT_DIR=/mnt/sftp
+
+COPY files/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY files/entrypoint /
+COPY files/sshd_config /etc/ssh/sshd_config
+
+ENTRYPOINT ["/entrypoint"]
