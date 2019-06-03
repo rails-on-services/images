@@ -1,23 +1,30 @@
-FROM atmoz/sftp
+FROM debian:stretch
 
 ARG os_base_packages='linux-image-4.9.0-8-amd64 kmod s3fs'
-
-RUN DEBIAN_FRONTEND=noninteractive apt-get update \
- && apt-get upgrade --yes \
- && apt-get install --yes --no-install-recommends ${os_base_packages} \
- && apt-get clean
-
-# NOTE: do not use --no-install-recommends to apt-get install python-pip
-RUN DEBIAN_FRONTEND=noninteractive apt-get install python-pip --yes \
- && pip install awscli \
- && apt-get clean
-
 ARG os_packages='tree less vim'
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends ${os_packages} \
- && apt-get clean \
- && echo 'set editing-mode vi' > /root/.inputrc
+# Steps done in one RUN layer:
+# - Install packages
+# - OpenSSH needs /var/run/sshd to run
+# - Remove generic host keys, entrypoint generates unique keys
+RUN DEBIAN_FRONTEND=noninteractive apt-get update \
+    && apt-get upgrade --yes \
+    && apt-get install --yes --no-install-recommends ${os_base_packages} ${os_packages} \
+    && apt-get install --yes openssh-server python3 python3-pip \
+    && apt-get clean \
+    && pip3 install --no-cache-dir supervisor awscli \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /var/run/sshd \
+    && rm -f /etc/ssh/ssh_host_*key* \
+    && echo 'set editing-mode vi' > /root/.inputrc
 
-ENV MOUNT_DIR=/home
-COPY entrypoint entrypoint
-COPY sshd_config /etc/ssh/sshd_config
+COPY files/supervisord.conf /etc/supervisor/supervisord.conf
+COPY files/entrypoint /
+COPY files/sshd_config /etc/ssh/sshd_config
+COPY files/update-sftp-user /usr/local/bin/update-sftp-user
+
+RUN chmod +x /usr/local/bin/update-sftp-user
+
+EXPOSE 22
+
+ENTRYPOINT ["/entrypoint"]

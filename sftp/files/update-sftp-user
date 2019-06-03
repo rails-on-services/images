@@ -1,0 +1,206 @@
+#!/usr/bin/env python3
+import argparse
+import hashlib
+import time
+import logging
+import sys
+import os
+import re
+import subprocess
+
+logger = logging.getLogger(__name__)
+log_handler = logging.StreamHandler(sys.stdout)
+log_handler.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
+logger.addHandler(log_handler)
+logger.setLevel(logging.INFO)
+
+USER_PATTERN = re.compile(
+    r"^(?P<user>[A-Za-z0-9._][A-Za-z0-9._-]{0,31}):(?P<pass>[^:]{0,255})(?P<encrypt>:e)?:?(?P<uid>\d*)?:?(?P<gid>\d*)?:?(?P<dirs>[^:]*)?$")
+
+def hash_file(filename: str):
+    """
+    Method for calculating the hash of a file.
+    :param filename: Name of the file to calculate the hash for.
+    :returns: Digest of the file, in hex.
+    """
+    chunk_size = 4096
+    with open(filename, mode='rb', buffering=0) as fp:
+        hash_func = hashlib.sha1()
+        buffer = fp.read(chunk_size)
+        while len(buffer) > 0:
+            hash_func.update(buffer)
+            buffer = fp.read(chunk_size)
+    return hash_func.hexdigest()
+
+
+def parse_user(line: str):
+    """
+    Method to parse a user line in config file
+    :returns: tuple (username, properties), properties is a dict. None if not parsable
+    """
+    match = USER_PATTERN.match(line.strip())
+    if match:
+        user = match.group('user')
+        properties = {
+            'password': match.group('pass'),
+            'encrypt': bool(match.group('encrypt')),
+            'uid': match.group('uid') or None,
+            'gid': match.group('gid') or None,
+            'dirs': match.group('dirs') and match.group('dirs').split(',') or []
+        }
+        return (user, properties)
+    else:
+        return None
+
+
+def parse_users(lines: list):
+    """
+    Method to parse the lines of user config file
+    :returns dict with username as key and properties as value
+    """
+    users = {}
+    for line in lines:
+        parse_result = parse_user(line)
+        if parse_result:
+            users[parse_result[0]] = parse_result[1]
+    return users
+
+
+def create_group(gid: str):
+    """
+    Create a linux group with gid if not exist
+    """
+    if subprocess.run('getent group {}'.format(gid), shell=True).returncode != 0:
+        # create group with gid if not exist
+        logger.info('Adding group with gid {}'.format(gid))
+        subprocess.run(
+            'groupadd --gid {} group_{}'.format(gid, gid), shell=True)
+
+def change_user_password(user: str, password: str, encrypt: bool):
+    chpasswd_options = ''
+    if encrypt:
+        chpasswd_options += ' -e'
+    subprocess.run('echo "$user:$pass" | chpasswd {}'.format(chpasswd_options), shell=True,
+                   env={'user': user, 'pass': password})
+
+def create_user_dirs(user: str, dirs: list):
+    for dir in dirs:
+        logger.info('Creating folder /home/{}/{}'.format(user, dir))
+        subprocess.run('mkdir -p /home/{}/{}'.format(user, dir), shell=True)
+        subprocess.run('chown {}:users /home/{}/{}'.format(user, user, dir), shell=True)
+
+def create_user(user: str, properties: dict):
+    uid = properties['uid']
+    gid = properties['gid']
+    encrypt = properties['encrypt']
+    password = properties['password']
+    dirs = properties['dirs']
+
+    user_add_options = '--no-user-group'
+    if uid:
+        user_add_options += ' --non-unique --uid {}'.format(uid)
+    if gid:
+        create_group(gid)
+        user_add_options += ' --gid {}'.format(gid)
+    pass
+    logger.info('Adding user {}'.format(user))
+    subprocess.run('useradd {} {}'.format(user_add_options, user), shell=True)
+    subprocess.run('mkdir -p /home/{}'.format(user), shell=True)
+    subprocess.run('chown root:root /home/{}'.format(user), shell=True)
+    subprocess.run('chmod 755 /home/{}'.format(user), shell=True)
+
+    if password:
+        change_user_password(user, password, encrypt)
+    # Make sure dirs exists
+    create_user_dirs(user, dirs)
+
+def update_user(user: str, old_properties: dict, new_properties: dict):
+    logger.info('Updating user {}'.format(user))
+    if old_properties['uid'] != new_properties['uid']:
+        logger.info('Change user {} uid from {} to {}'.format(user, old_properties['uid'], new_properties['uid']))
+        subprocess.run('usermod --non-unique -u {} {}'.format(new_properties['uid'], user), shell=True)
+
+    if old_properties['gid'] != new_properties['gid'] and new_properties['gid']:
+        logger.info('Change user {} gid from {} to {}'.format(user, old_properties['gid'], new_properties['gid']))
+        create_group(new_properties['gid'])
+        subprocess.run('groupmod -g {} {}'.format(new_properties['gid'], user), shell=True)
+
+    if old_properties['password'] != new_properties['password'] or \
+        old_properties['encrypt'] != new_properties['encrypt']:
+        logger.info('Change user {} password'.format(user))
+        change_user_password(user, new_properties['password'], new_properties['encrypt'])
+    
+    if old_properties['dirs'] != new_properties['dirs']:
+        create_user_dirs(user, new_properties['dirs'])
+
+def delete_user(user: str):
+    logger.info('Deleting user {}'.format(user))
+    # No need to delete the user's home directory
+    subprocess.run('userdel {}'.format(user), shell=True)
+
+def update_users(users_conf_path: str, users_cache_path: str):
+    if not os.path.isfile(users_cache_path):
+        # create the cache file if not exist
+        os.makedirs(os.path.dirname(users_cache_path), exist_ok=True)
+        open(users_cache_path, 'a').close()
+    with open(users_conf_path, 'r') as f:
+        users_conf_lines = f.readlines()
+        updated_users = parse_users(users_conf_lines)
+    with open(users_cache_path, 'r') as f:
+        existing_users = parse_users(f.readlines())
+
+    for user, properties in updated_users.items():
+        if user in existing_users:
+            if properties == existing_users[user]:
+                logger.info('User {} no change, skip'.format(user))
+            else:
+                update_user(user, existing_users[user], properties)
+        else:
+            create_user(user, properties)
+
+    for user in set(existing_users.keys()) - set(updated_users.keys()):
+        # delete non-exist users
+        delete_user(user)
+
+    with open(users_cache_path, 'w') as f:
+        f.writelines(users_conf_lines)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--users-conf', help='Path to the sftp users definition file', required=True)
+    parser.add_argument(
+        '--users-cache', help='Path fo the local users cache file', required=True)
+    parser.add_argument('--watch-change', help='Change change of source file and update continuously',
+                        action='store_true')
+    parser.add_argument('--watch-interval', help='Time interval for the watch of users-conf file, default is 10 seconds',
+                        type=int, default=10)
+    args = parser.parse_args()
+
+    users_conf_path = args.users_conf
+    users_cache_path = args.users_cache
+
+    if args.watch_change:
+        users_conf_hash = None
+        while True:
+            if os.path.isfile(users_conf_path):
+                new_users_conf_hash = hash_file(users_conf_path)
+                if new_users_conf_hash != users_conf_hash:
+                    update_users(users_conf_path, users_cache_path)
+                    users_conf_hash = new_users_conf_hash
+                else:
+                    logger.info('Users conf file has no change, nothing to do')
+            else:
+                logger.warn(
+                    'Users conf file {} not exist, nothing to do'.format(users_conf_path))
+            time.sleep(args.watch_interval)
+    else:
+        if os.path.isfile(users_conf_path):
+            update_users(users_conf_path, users_cache_path)
+        else:
+            logger.warn(
+                'Users conf file {} not exist, nothing to do'.format(users_conf_path))
+
+if __name__ == '__main__':
+    main()

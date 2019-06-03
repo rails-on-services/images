@@ -1,0 +1,8 @@
+version: '3'
+services:
+  sftp:
+    volumes:
+      - ./users.conf:/tmp/users.conf
+    command: >
+      aws s3api --endpoint-url=http://localstack:4572 put-object --bucket sftp --key config/users.conf
+      --metadata uid=0,gid=0,mode=33188 --content-type application/octet-stream --body /tmp/users.conf
