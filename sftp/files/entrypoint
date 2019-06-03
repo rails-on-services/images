@@ -27,51 +27,41 @@ if [ -n "$BUCKET_NAME" ]; then
     log "Mounting s3://$BUCKET_NAME/home to /home"
     s3fs $BUCKET_NAME:/home/ /home -o nonempty,noexec,allow_other,umask=022 $MOUNT_OPTIONS
     
-    log "Mounting s3://$BUCKET_NAME/config to /mnt/config"
-    mkdir -p /mnt/config
-    s3fs $BUCKET_NAME:/config/ /mnt/config -o nonempty,noexec,allow_other,mp_umask=022 $MOUNT_OPTIONS
-    log "Link /mnt/config/sshx to /etc/sshx"
-    mkdir -p /mnt/config/sshx && ln -s /mnt/config/sshx /etc/sshx
+    log "Mounting s3://$BUCKET_NAME/config to /opt/sftp"
+    mkdir -p /opt/sftp
+    s3fs $BUCKET_NAME:/config/ /opt/sftp -o nonempty,noexec,allow_other,mp_umask=022 $MOUNT_OPTIONS
+else
+    log "BUCKET_NAME is not set, skip mounting S3 bucket"
 fi
+
+log "Making sure /opt/sftp/sshx exists"
+mkdir -p /opt/sftp/sshx
 
 # shellcheck disable=2154
 trap 's=$?; echo "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
 # Generate unique ssh keys for this container, if needed
-if [ ! -f /etc/sshx/ssh_host_ed25519_key ]; then
-    ssh-keygen -t ed25519 -f /etc/sshx/ssh_host_ed25519_key -N ''
+if [ ! -f /opt/sftp/sshx/ssh_host_ed25519_key ]; then
+    ssh-keygen -t ed25519 -f /opt/sftp/sshx/ssh_host_ed25519_key -N ''
 fi
-if [ ! -f /etc/sshx/ssh_host_rsa_key ]; then
-    ssh-keygen -t rsa -b 4096 -f /etc/sshx/ssh_host_rsa_key -N ''
+if [ ! -f /opt/sftp/sshx/ssh_host_rsa_key ]; then
+    ssh-keygen -t rsa -b 4096 -f /opt/sftp/sshx/ssh_host_rsa_key -N ''
 fi
 
 # Paths
-userConfPath="/mnt/config/users.conf"
-userConfFinalPath="/var/run/sftp/users.conf"
-
-reArgSkip='^([[:blank:]]*#.*|[[:blank:]]*)$' # comment or empty line
+userConfPath="/opt/sftp/users.conf"
+userCachePath="/var/run/sftp/users.conf"
 
 # Create users on first run
-if [ ! -f "$userConfFinalPath" ]; then
-    mkdir -p "$(dirname $userConfFinalPath)"
-
-    if [ -f "$userConfPath" ]; then
-        # Append mounted config to final config
-        grep -v -E "$reArgSkip" < "$userConfPath" > "$userConfFinalPath"
-    fi
-
-    # Check that we have users in config
-    if [ -f "$userConfFinalPath" ] && [ "$(wc -l < "$userConfFinalPath")" -gt 0 ]; then
-        # Import users from final conf file
-        while IFS= read -r user || [[ -n "$user" ]]; do
-            create-sftp-user "$user"
-        done < "$userConfFinalPath"
-    fi
+if [ -f "$userConfPath" ] && [ ! -f "$userCachePath" ]; then
+    mkdir -p "$(dirname $userCachePath)"
+    update-sftp-user --users-conf $userConfPath --users-cache $userCachePath
 fi
 
 # Allow running other programs, e.g. bash
 if [ $# -eq 0 ] || [ "${1#-}" != "$1" ]; then
-  set -- supervisord "$@"
+    mkdir -p /var/log/supervisor
+    set -- supervisord "$@"
 fi
 
 exec "$@"
