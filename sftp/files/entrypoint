@@ -1,12 +1,16 @@
 #!/bin/bash
 set -Eeo pipefail
 
-echo $AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY > /etc/passwd-s3fs
-chmod 600 /etc/passwd-s3fs
-
 function log() {
     echo "[$0] $*" >&2
 }
+
+if [ -n "$AWS_ACCESS_KEY_ID" ] && [ -n "$AWS_SECRET_ACCESS_KEY" ]; then
+    echo $AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY > /etc/passwd-s3fs
+    chmod 600 /etc/passwd-s3fs
+else
+    log "Warning: AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY not specified, not creating /etc/passwd-s3fs"
+fi
 
 AWS_S3_PARAMS=''
 MOUNT_OPTIONS=''
@@ -38,7 +42,7 @@ log "Making sure /opt/sftp/sshx exists"
 mkdir -p /opt/sftp/sshx
 
 log "Making sure /opt/sftp/sshx/authorized-keys exists"
-mkdir -p /opt/sftp/ssh/authorized-keys
+mkdir -p /opt/sftp/sshx/authorized-keys
 
 # shellcheck disable=2154
 trap 's=$?; echo "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
