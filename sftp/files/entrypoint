@@ -37,6 +37,9 @@ fi
 log "Making sure /opt/sftp/sshx exists"
 mkdir -p /opt/sftp/sshx
 
+log "Making sure /opt/sftp/sshx/authorized-keys exists"
+mkdir -p /opt/sftp/ssh/authorized-keys
+
 # shellcheck disable=2154
 trap 's=$?; echo "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
