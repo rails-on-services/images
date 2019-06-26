@@ -14,7 +14,7 @@ S3 prefix `config/` is mounted to the container at path `/opt/sftp`.
 
 #### users.conf
 
-The SFTP container periodically syncs users from a file `users.conf` at `/opt/sftp/`. The `users.conf` file is following same format as [atmoz/sftp](https://github.com/atmoz/sftp). The container will not having any SFTP user until the file is there.
+The SFTP container periodically syncs users from a file `users.conf` at `/opt/sftp/` under the containers which maps to S3 object at `/config/users.conf`. The `users.conf` file is following same format as [atmoz/sftp](https://github.com/atmoz/sftp). The container will not having any SFTP user until the file is there.
 
 #### SSH host keys
 
