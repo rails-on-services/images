@@ -13,29 +13,32 @@ else
 fi
 
 AWS_S3_PARAMS=''
-MOUNT_OPTIONS=''
 if [ -n "$BUCKET_NAME" ]; then
-    AWS_S3_PARAMS="--endpoint-url=$BUCKET_ENDPOINT_URL"
+    if [ -n "$BUCKET_ENDPOINT_URL" ]; then
+        AWS_S3_PARAMS="--endpoint-url=$BUCKET_ENDPOINT_URL"
+        # use s3fs with a non-Amazon S3 implementation, specify the URL and path-style requests:
+        MOUNT_OPTIONS="${MOUNT_OPTIONS} -o url=$BUCKET_ENDPOINT_URL,use_path_request_style"
+    fi
     if ! aws s3api ${AWS_S3_PARAMS} head-bucket --bucket ${BUCKET_NAME}; then
         log "Bucket ${BUCKET_NAME} not exist, creating"
         aws s3 ${AWS_S3_PARAMS} mb s3://$BUCKET_NAME
         log "Created bucket ${BUCKET_NAME}"
     fi
-    # use s3fs with a non-Amazon S3 implementation, specify the URL and path-style requests:
-    MOUNT_OPTIONS=" -o url=$BUCKET_ENDPOINT_URL,use_path_request_style"
-    log "Making sure prefix home/ in bucket ${BUCKET_NAME} exists"
-    aws s3api ${AWS_S3_PARAMS} put-object --bucket ${BUCKET_NAME} --key home/ \
+    
+    log "Making sure prefix sftp/home/ in bucket ${BUCKET_NAME} exists"
+    aws s3api ${AWS_S3_PARAMS} put-object --bucket ${BUCKET_NAME} --key sftp/home/ \
         --metadata uid=0,gid=0,mode=493 --content-type application/x-directory
-    log "Making sure prefix config/ in bucket ${BUCKET_NAME} exists"
-    aws s3api ${AWS_S3_PARAMS} put-object --bucket ${BUCKET_NAME} --key config/ \
+    log "Making sure prefix sftp/config/ in bucket ${BUCKET_NAME} exists"
+    aws s3api ${AWS_S3_PARAMS} put-object --bucket ${BUCKET_NAME} --key sftp/config/ \
         --metadata uid=0,gid=0,mode=493 --content-type application/x-directory
 
-    log "Mounting s3://$BUCKET_NAME/home to /home"
-    s3fs $BUCKET_NAME:/home/ /home -o nonempty,noexec,allow_other,umask=022 $MOUNT_OPTIONS
+    log "Mounting s3://$BUCKET_NAME/sftp/home to /home"
+    s3fs $BUCKET_NAME:/sftp/home/ /home -o nonempty,noexec,allow_other,umask=022,multireq_max=5 $MOUNT_OPTIONS
     
-    log "Mounting s3://$BUCKET_NAME/config to /opt/sftp"
+    log "Mounting s3://$BUCKET_NAME/sftp/config to /opt/sftp"
     mkdir -p /opt/sftp
-    s3fs $BUCKET_NAME:/config/ /opt/sftp -o nonempty,noexec,allow_other,mp_umask=022 $MOUNT_OPTIONS
+    s3fs $BUCKET_NAME:/sftp/config/ /opt/sftp -o nonempty,noexec,allow_other,mp_umask=022,multireq_max=5 $MOUNT_OPTIONS
+    sleep 3
 else
     log "BUCKET_NAME is not set, skip mounting S3 bucket"
 fi
@@ -70,7 +73,10 @@ fi
 # Allow running other programs, e.g. bash
 if [ $# -eq 0 ] || [ "${1#-}" != "$1" ]; then
     mkdir -p /var/log/supervisor
-    set -- supervisord "$@"
+    # umount s3 bucket and let supervisord to run the s3fs mounts
+    umount /opt/sftp
+    umount /home
+    set -- supervisord -c /etc/supervisor/supervisord.conf "$@"
 fi
 
 exec "$@"

@@ -18,6 +18,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update \
     && rm -f /etc/ssh/ssh_host_*key* \
     && echo 'set editing-mode vi' > /root/.inputrc
 
+RUN mkdir -p /etc/supervisor/conf.d
 COPY files/supervisord.conf /etc/supervisor/supervisord.conf
 COPY files/entrypoint /
 COPY files/sshd_config /etc/ssh/sshd_config
@@ -26,5 +27,6 @@ COPY files/update-sftp-user /usr/local/bin/update-sftp-user
 RUN chmod +x /usr/local/bin/update-sftp-user
 
 EXPOSE 22
+ENV MOUNT_OPTIONS=""
 
 ENTRYPOINT ["/entrypoint"]

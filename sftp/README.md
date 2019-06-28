@@ -14,15 +14,15 @@ S3 prefix `config/` is mounted to the container at path `/opt/sftp`.
 
 #### users.conf
 
-The SFTP container periodically syncs users from a file `users.conf` at `/opt/sftp/` under the containers which maps to S3 object at `/config/users.conf`. The `users.conf` file is following same format as [atmoz/sftp](https://github.com/atmoz/sftp). The container will not having any SFTP user until the file is there.
+The SFTP container periodically syncs users from a file `users.conf` at `/opt/sftp/` under the containers which maps to S3 object at `/sftp/config/users.conf`. The `users.conf` file is following same format as [atmoz/sftp](https://github.com/atmoz/sftp). The container will not having any SFTP user until the file is there.
 
 #### SSH host keys
 
-SSH host keys are also mounted from s3. The location is `/opt/sftp/sshx/ssh_host_*` inside the container which maps to s3 object keys `/config/sshx/ssh_host_*`. If the keys are not there, the container will create them during initialization.
+SSH host keys are also mounted from s3. The location is `/opt/sftp/sshx/ssh_host_*` inside the container which maps to s3 object keys `/sftp/config/sshx/ssh_host_*`. If the keys are not there, the container will create them during initialization.
 
 #### Users' SSH authorized-keys
 
-Users's SSH authorized-keys (SSH public key) are also mounted from S3. The location is `/opt/sftp/sshx/authorized-keys/{user_name}` inside the container which maps to s3 object keys `/config/sshx/authorized-keys/{user_name}`. Note that SSH server expects the SSH authorized keys are stored with proper file permissions (644 would be fine). 
+Users's SSH authorized-keys (SSH public key) are also mounted from S3. The location is `/opt/sftp/sshx/authorized-keys/{user_name}` inside the container which maps to s3 object keys `/sftp/config/sshx/authorized-keys/{user_name}`. Note that SSH server expects the SSH authorized keys are stored with proper file permissions (644 would be fine). 
 
 The authorized-keys folder will be created by the container during initilization if it's not exisit. You can upload each user's public key to the container to allow them login using SSH key.
 
