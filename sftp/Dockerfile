@@ -28,5 +28,6 @@ RUN chmod +x /usr/local/bin/update-sftp-user
 
 EXPOSE 22
 ENV MOUNT_OPTIONS=""
+ENV BUCKET_PREFIX=""
 
 ENTRYPOINT ["/entrypoint"]

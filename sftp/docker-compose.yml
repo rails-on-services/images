@@ -17,6 +17,8 @@ services:
       AWS_SECRET_ACCESS_KEY: so_valid_credentials_are_not_necessary
       BUCKET_ENDPOINT_URL: http://localstack:4572
       BUCKET_NAME: sftp
+      # S3 key prefix for the sftp service
+      BUCKET_PREFIX: master/
   wait:
     image: waisbrot/wait
     depends_on:
