@@ -4,5 +4,5 @@ services:
     volumes:
       - ./users.conf:/tmp/users.conf
     command: >
-      bash -c "aws s3api --endpoint-url=http://localstack:4572 put-object --bucket $${BUCKET_NAME} --key $${BUCKET_PREFIX}sftp/config/users.conf
+      bash -c "aws s3api --endpoint-url=http://localstack:4572 put-object --bucket $${BUCKET_NAME} --key $${BUCKET_PREFIX}/sftp/config/users.conf
       --metadata uid=0,gid=0,mode=33188 --content-type application/octet-stream --body /tmp/users.conf"

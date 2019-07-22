@@ -25,19 +25,19 @@ if [ -n "$BUCKET_NAME" ]; then
         log "Created bucket ${BUCKET_NAME}"
     fi
     
-    log "Making sure prefix ${BUCKET_PREFIX}sftp/home/ in bucket ${BUCKET_NAME} exists"
-    aws s3api ${AWS_S3_PARAMS} put-object --bucket ${BUCKET_NAME} --key "${BUCKET_PREFIX}sftp/home/" \
+    log "Making sure prefix ${BUCKET_PREFIX}/sftp/home/ in bucket ${BUCKET_NAME} exists"
+    aws s3api ${AWS_S3_PARAMS} put-object --bucket ${BUCKET_NAME} --key "${BUCKET_PREFIX}/sftp/home/" \
         --metadata uid=0,gid=0,mode=493 --content-type application/x-directory
-    log "Making sure prefix ${BUCKET_PREFIX}sftp/config/ in bucket ${BUCKET_NAME} exists"
-    aws s3api ${AWS_S3_PARAMS} put-object --bucket ${BUCKET_NAME} --key "${BUCKET_PREFIX}sftp/config/" \
+    log "Making sure prefix ${BUCKET_PREFIX}/sftp/config/ in bucket ${BUCKET_NAME} exists"
+    aws s3api ${AWS_S3_PARAMS} put-object --bucket ${BUCKET_NAME} --key "${BUCKET_PREFIX}/sftp/config/" \
         --metadata uid=0,gid=0,mode=493 --content-type application/x-directory
 
-    log "Mounting s3://${BUCKET_NAME}/${BUCKET_PREFIX}sftp/home to /home"
-    s3fs "$BUCKET_NAME:/${BUCKET_PREFIX}sftp/home/" /home -o nonempty,noexec,allow_other,umask=022,multireq_max=5 $MOUNT_OPTIONS
+    log "Mounting s3://${BUCKET_NAME}/${BUCKET_PREFIX}/sftp/home to /home"
+    s3fs "$BUCKET_NAME:/${BUCKET_PREFIX}/sftp/home/" /home -o nonempty,noexec,allow_other,umask=022,multireq_max=5 $MOUNT_OPTIONS
     
-    log "Mounting s3://$BUCKET_NAME/sftp/config to /opt/sftp"
+    log "Mounting s3://$BUCKET_NAME/${BUCKET_PREFIX}/sftp/config to /opt/sftp"
     mkdir -p /opt/sftp
-    s3fs "$BUCKET_NAME:/${BUCKET_PREFIX}sftp/config/" /opt/sftp -o nonempty,noexec,allow_other,mp_umask=022,multireq_max=5 $MOUNT_OPTIONS
+    s3fs "$BUCKET_NAME:/${BUCKET_PREFIX}/sftp/config/" /opt/sftp -o nonempty,noexec,allow_other,mp_umask=022,multireq_max=5 $MOUNT_OPTIONS
     sleep 3
 else
     log "BUCKET_NAME is not set, skip mounting S3 bucket"
