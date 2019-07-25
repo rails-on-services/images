@@ -41,6 +41,7 @@ jobs:
           command: |
             echo "Docker Tag: ${DOCKER_TAG}"
             parallel "docker build -t << parameters.dockerhub_organization >>/{}:${DOCKER_TAG} {}" ::: "${PROJECTS[@]}"
+          no_output_timeout: 30m
       - run:
           name: Push docker 
           command: |
