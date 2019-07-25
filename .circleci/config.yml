@@ -11,13 +11,6 @@ executors:
         type: boolean
 
 commands:
-  setup_buildkitd:
-    description: Enable buildkit
-    steps:
-      - run:
-          name: Setup buildkit environment variable
-          command: |
-            echo 'export DOCKER_BUILDKIT=1' >> $BASH_ENV
   docker_login:
     description: Login to Dockerhub
     steps:
@@ -32,16 +25,17 @@ jobs:
       dockerhub_organization:
         default: railsonservices
         type: string
-    executor: ubuntu
+    executor:
+      name: ubuntu
+      docker_layer_caching: false
     steps:
       - checkout
-      - setup_buildkitd
       - docker_login
       - run:
           name: Setup environment variables
           command: |
             echo "export DOCKER_TAG=${CIRCLE_SHA1:0:7}" >> $BASH_ENV
-            echo "export PROJECTS=(fluentd sftp)" >> $BASH_ENV
+            echo "export PROJECTS=(fluentd sftp cli)" >> $BASH_ENV
       - run:
           name: Build docker image
           command: |
