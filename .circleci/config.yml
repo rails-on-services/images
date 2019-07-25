@@ -1,0 +1,62 @@
+version: 2.1
+executors:
+  ubuntu:
+    machine:
+      image: ubuntu-1604:201903-01
+      docker_layer_caching: << parameters.docker_layer_caching >>
+    working_directory: ~/project
+    parameters:
+      docker_layer_caching:
+        default: true
+        type: boolean
+
+commands:
+  setup_buildkitd:
+    description: Enable buildkit
+    steps:
+      - run:
+          name: Setup buildkit environment variable
+          command: |
+            echo 'export DOCKER_BUILDKIT=1' >> $BASH_ENV
+  docker_login:
+    description: Login to Dockerhub
+    steps:
+      - run:
+          name: Login to dockerhub
+          command: echo ${DOCKERHUB_PASSWORD} | docker login -u ${DOCKERHUB_USER} --password-stdin
+
+jobs:
+  build_docker_image:
+    working_directory: ~/project
+    parameters:
+      dockerhub_organization:
+        default: railsonservices
+        type: string
+    executor: ubuntu
+    steps:
+      - checkout
+      - setup_buildkitd
+      - docker_login
+      - run:
+          name: Setup environment variables
+          command: |
+            echo "export DOCKER_TAG=${CIRCLE_SHA1:0:7}" >> $BASH_ENV
+            echo "export PROJECTS=(fluentd sftp)" >> $BASH_ENV
+      - run:
+          name: Build docker image
+          command: |
+            echo "Docker Tag: ${DOCKER_TAG}"
+            parallel "docker build -t << parameters.dockerhub_organization >>/{}:${DOCKER_TAG} {}" ::: "${PROJECTS[@]}"
+      - run:
+          name: Push docker 
+          command: |
+            parallel "docker push << parameters.dockerhub_organization >>/{}:${DOCKER_TAG}" ::: "${PROJECTS[@]}"
+            # if the branch is master, also push with latest
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              parallel "docker tag << parameters.dockerhub_organization >>/{}:${DOCKER_TAG} << parameters.dockerhub_organization >>/{}:latest" ::: "${PROJECTS[@]}"
+              parallel "docker push << parameters.dockerhub_organization >>/{}:latest" ::: "${PROJECTS[@]}"
+            fi
+workflows:
+  build:
+    jobs:
+      - build_docker_image
