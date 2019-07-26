@@ -7,7 +7,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update \
     && apt-get install --yes --no-install-recommends \
       locales sudo openssh-client ca-certificates tar gzip parallel \
       net-tools netcat unzip zip bzip2 gnupg curl wget less git python-setuptools python-pip \
-    && pip install ansible \
+    && pip install ansible docker-compose \
     && apt-get clean
 
 # install docker
