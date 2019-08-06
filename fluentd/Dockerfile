@@ -15,6 +15,7 @@ RUN buildDeps="sudo make gcc g++ libc-dev ruby-dev" \
         fluent-plugin-kubernetes_metadata_filter \
         fluent-plugin-s3 \
         fluent-plugin-kafka \
+        fluent-plugin-filter-base64-decode \
   && sudo gem sources --clear-all \
   && SUDO_FORCE_REMOVE=yes \
     apt-get purge -y --auto-remove \
