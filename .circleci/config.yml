@@ -35,7 +35,7 @@ jobs:
           name: Setup environment variables
           command: |
             echo "export DOCKER_TAG=${CIRCLE_SHA1:0:7}" >> $BASH_ENV
-            echo "export PROJECTS=(fluentd sftp cli)" >> $BASH_ENV
+            echo "export PROJECTS=(fluentd sftp cli kafka-connect)" >> $BASH_ENV
       - run:
           name: Build docker image
           command: |
