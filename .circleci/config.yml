@@ -42,6 +42,8 @@ jobs:
           name: Build docker image
           command: |
             echo "Docker Tag: ${DOCKER_TAG}"
+            echo "Projects: ${PROJECTS}"
+            echo "Test: ${TEST}"
             parallel "docker build -t << parameters.dockerhub_organization >>/{}:${DOCKER_TAG} {}" ::: "${PROJECTS[@]}"
           no_output_timeout: 30m
       - run:
