@@ -28,6 +28,9 @@ jobs:
     executor:
       name: ubuntu
       docker_layer_caching: false
+    environment:
+      PROJECTS: (fluentd sftp)
+      #     echo "export PROJECTS=(fluentd sftp cli)" >> $BASH_ENV
     steps:
       - checkout
       - docker_login
@@ -35,7 +38,6 @@ jobs:
           name: Setup environment variables
           command: |
             echo "export DOCKER_TAG=${CIRCLE_SHA1:0:7}" >> $BASH_ENV
-            echo "export PROJECTS=(fluentd sftp cli)" >> $BASH_ENV
       - run:
           name: Build docker image
           command: |
@@ -55,3 +57,10 @@ workflows:
   build:
     jobs:
       - build_docker_image
+
+  build_cli_only:
+    jobs:
+      - build_cli_docker_image:
+          filters:
+            branches:
+              only: cli
