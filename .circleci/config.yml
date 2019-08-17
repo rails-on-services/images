@@ -27,27 +27,35 @@ jobs:
         type: string
     executor:
       name: ubuntu
-      docker_layer_caching: false
+    parallelism: 2
+    environment:
+      DOCKER_BUILDKIT: "1"
     steps:
       - checkout
       - docker_login
-      #     echo "export PROJECTS=(fluentd sftp cli kafka-connect)" >> $BASH_ENV
       - run:
           name: Setup environment variables
           command: |
             echo "export DOCKER_TAG=${CIRCLE_SHA1:0:7}" >> $BASH_ENV
-            echo "export PROJECTS=(cli)" >> $BASH_ENV
+            PROJECTS=()
+            for d in *; do
+              if [ -d "${d}" ] && [ -f "${d}/Dockerfile" ]; then
+                PROJECTS+=("${d}")
+              fi
+            done
+            # split the projects to build in parallel
+            echo "export PROJECTS=($(echo ${PROJECTS[@]} | xargs -n 1 echo | circleci tests split --split-by=timings))" >> $BASH_ENV
       - run:
           name: Build docker image
           command: |
             echo "Docker Tag: ${DOCKER_TAG}"
-            echo "Projects: ${PROJECTS}"
-            parallel "docker build -t << parameters.dockerhub_organization >>/{}:${DOCKER_TAG} {}" ::: "${PROJECTS[@]}"
+            echo "Projects: ${PROJECTS[@]}"
+            parallel --ungroup "docker build -t railsonservices/{}:${DOCKER_TAG} {}" ::: "${PROJECTS[@]}"
           no_output_timeout: 30m
       - run:
           name: Push docker 
           command: |
-            parallel "docker push << parameters.dockerhub_organization >>/{}:${DOCKER_TAG}" ::: "${PROJECTS[@]}"
+            parallel --ungroup "docker push << parameters.dockerhub_organization >>/{}:${DOCKER_TAG}" ::: "${PROJECTS[@]}"
             # if the branch is master, also push with latest
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
               parallel "docker tag << parameters.dockerhub_organization >>/{}:${DOCKER_TAG} << parameters.dockerhub_organization >>/{}:latest" ::: "${PROJECTS[@]}"
