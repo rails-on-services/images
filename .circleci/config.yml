@@ -27,7 +27,6 @@ jobs:
         type: string
     executor:
       name: ubuntu
-      docker_layer_caching: false
     steps:
       - checkout
       - docker_login
@@ -36,7 +35,13 @@ jobs:
           name: Setup environment variables
           command: |
             echo "export DOCKER_TAG=${CIRCLE_SHA1:0:7}" >> $BASH_ENV
-            echo "export PROJECTS=(cli)" >> $BASH_ENV
+            PROJECTS=()
+            for d in *; do
+              if [ -d "${d}" ] && [ -f "${d}/Dockerfile" ]; then
+                PROJECTS+=("${d}")
+              fi
+            done
+            echo "export PROJECTS=(${PROJECTS[@]})" >> $BASH_ENV
       - run:
           name: Build docker image
           command: |
