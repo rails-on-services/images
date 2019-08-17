@@ -60,7 +60,7 @@ workflows:
 
   build_cli_only:
     jobs:
-      - build_cli_docker_image:
+      - build_docker_image:
           filters:
             branches:
               only: cli
