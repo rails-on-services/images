@@ -28,8 +28,8 @@ jobs:
     executor:
       name: ubuntu
       docker_layer_caching: false
-    environment:
-      PROJECTS: (fluentd sftp)
+    # environment:
+      # PROJECTS: (fluentd sftp)
       #     echo "export PROJECTS=(fluentd sftp cli kafka-connect)" >> $BASH_ENV
     steps:
       - checkout
