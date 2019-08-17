@@ -28,22 +28,20 @@ jobs:
     executor:
       name: ubuntu
       docker_layer_caching: false
-    # environment:
-      # PROJECTS: (fluentd sftp)
-      #     echo "export PROJECTS=(fluentd sftp cli kafka-connect)" >> $BASH_ENV
     steps:
       - checkout
       - docker_login
+      #     echo "export PROJECTS=(fluentd sftp cli kafka-connect)" >> $BASH_ENV
       - run:
           name: Setup environment variables
           command: |
             echo "export DOCKER_TAG=${CIRCLE_SHA1:0:7}" >> $BASH_ENV
+            echo "export PROJECTS=(cli)" >> $BASH_ENV
       - run:
           name: Build docker image
           command: |
             echo "Docker Tag: ${DOCKER_TAG}"
             echo "Projects: ${PROJECTS}"
-            echo "Test: ${TEST}"
             parallel "docker build -t << parameters.dockerhub_organization >>/{}:${DOCKER_TAG} {}" ::: "${PROJECTS[@]}"
           no_output_timeout: 30m
       - run:
