@@ -7,7 +7,10 @@ RUN buildDeps="make gcc g++ libc-dev wget bzip2 gnupg dirmngr" \
   && apt-get update \
   && apt-get install -y --no-install-recommends $buildDeps \
   && gem install --no-document \
-        fluent-plugin-google-cloud \
+        #Do we ever use below plugin somewhere? 
+        #One of its dependencies isn't compatible with Ruby 2.6
+        #Comment it for now and see if it can be built
+        #fluent-plugin-google-cloud \
         fluent-plugin-detect-exceptions \
         fluent-plugin-to_js \
         fluent-plugin-systemd \
