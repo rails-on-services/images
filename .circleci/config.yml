@@ -28,6 +28,8 @@ jobs:
     executor:
       name: ubuntu
     parallelism: 2
+    environment:
+      DOCKER_BUILDKIT: "1"
     steps:
       - checkout
       - docker_login
