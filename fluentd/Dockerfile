@@ -37,4 +37,4 @@ ENV FLUENTD_CONF="fluent.conf"
 
 USER fluent
 
-CMD fluentd $FLUENTD_OPT
+CMD fluentd -c /fluentd/etc/${FLUENTD_CONF} $FLUENTD_OPT
