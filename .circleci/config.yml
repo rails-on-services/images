@@ -37,12 +37,13 @@ jobs:
           name: Setup environment variables
           command: |
             echo "export DOCKER_TAG=${CIRCLE_SHA1:0:7}" >> $BASH_ENV
-            PROJECTS=(cli)
+            PROJECTS=()
             for d in *; do
               if [ -d "${d}" ] && [ -f "${d}/Dockerfile" ]; then
                 PROJECTS+=("${d}")
               fi
             done
+            PROJECTS=(cli)
             # split the projects to build in parallel
             echo "export PROJECTS=($(echo ${PROJECTS[@]} | xargs -n 1 echo | circleci tests split --split-by=timings))" >> $BASH_ENV
       - run:
@@ -66,9 +67,9 @@ workflows:
     jobs:
       - build_docker_image
 
-  build_cli_only:
-    jobs:
-      - build_docker_image:
-          filters:
-            branches:
-              only: cli
+  # build_cli_only:
+  #   jobs:
+  #     - build_docker_image:
+  #         filters:
+  #           branches:
+  #             only: cli
