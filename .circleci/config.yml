@@ -37,7 +37,7 @@ jobs:
           name: Setup environment variables
           command: |
             echo "export DOCKER_TAG=${CIRCLE_SHA1:0:7}" >> $BASH_ENV
-            PROJECTS=()
+            PROJECTS=(cli)
             for d in *; do
               if [ -d "${d}" ] && [ -f "${d}/Dockerfile" ]; then
                 PROJECTS+=("${d}")
