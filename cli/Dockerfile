@@ -1,4 +1,4 @@
-FROM debian:stretch
+FROM ruby:2.6.3-stretch
 
 ARG PUID=1000
 ARG PGID=1000
@@ -31,6 +31,9 @@ USER cli
 WORKDIR /home/cli
 ENV SHELL=/bin/bash
 
+# Docker layer cache will never be updated with a basic git clone statement
+# So we use the add statement to get the current version of master; if no change then cached, otherwise rebuild
+ADD https://api.github.com/repos/rails-on-services/ros-cli/git/refs/heads/master version.json
 RUN mkdir -p ros \
     && git clone https://github.com/rails-on-services/setup.git ros/setup \
     && (cd ros/setup; bash -l -c "./cli.yml") \
