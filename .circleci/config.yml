@@ -43,7 +43,6 @@ jobs:
                 PROJECTS+=("${d}")
               fi
             done
-            PROJECTS=(cli)
             # split the projects to build in parallel
             echo "export PROJECTS=($(echo ${PROJECTS[@]} | xargs -n 1 echo | circleci tests split --split-by=timings))" >> $BASH_ENV
       - run:
