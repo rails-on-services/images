@@ -50,7 +50,7 @@ jobs:
           command: |
             echo "Docker Tag: ${DOCKER_TAG}"
             echo "Projects: ${PROJECTS[@]}"
-            parallel --ungroup "docker build -t railsonservices/{}:${DOCKER_TAG} {}" ::: "${PROJECTS[@]}"
+            parallel --ungroup "docker build --no-cache -t railsonservices/{}:${DOCKER_TAG} {}" ::: "${PROJECTS[@]}"
           no_output_timeout: 30m
       - run:
           name: Push docker 
