@@ -12,3 +12,5 @@ to install it's tools
 So whenever a CLI image is built the Dockerfile will check if there is a newer commit on the setup
 repository and if there is it will bust the cache and trigger a new clone of the repo
 and re-run the ansible playbooks
+
+test
