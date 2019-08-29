@@ -6,7 +6,7 @@ CLI_VERSION = $(shell curl -s 'https://api.github.com/repos/rails-on-services/ro
 BUILD_ARGS = --build-arg SETUP_VERSION=$(SETUP_VERSION) --build-arg CLI_VERSION=$(CLI_VERSION)
 
 .PHONY: build
-build: docker-build
+build: $(if $(USE_KANIKO),docker-kaniko-build,docker-build)
 
 .PHONY: publish
 publish: docker-publish
