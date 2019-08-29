@@ -28,48 +28,36 @@ jobs:
     executor:
       name: ubuntu
     parallelism: 2
-    environment:
-      DOCKER_BUILDKIT: "1"
     steps:
       - checkout
       - docker_login
       - run:
           name: Setup environment variables
           command: |
-            echo "export DOCKER_TAG=${CIRCLE_SHA1:0:7}" >> $BASH_ENV
-            PROJECTS=()
+            MODULES=()
             for d in *; do
-              if [ -d "${d}" ] && [ -f "${d}/Dockerfile" ]; then
-                PROJECTS+=("${d}")
+              if [ -d "${d}" ] && [ -f "${d}/Makefile" ]; then
+                MODULES+=("${d}")
               fi
             done
-            PROJECTS=(cli)
-            # split the projects to build in parallel
-            echo "export PROJECTS=($(echo ${PROJECTS[@]} | xargs -n 1 echo | circleci tests split --split-by=timings))" >> $BASH_ENV
+            # split the MODULES to build in parallel
+            echo "export MODULES=($(echo ${MODULES[@]} | xargs -n 1 echo | circleci tests split --split-by=timings))" >> $BASH_ENV
       - run:
-          name: Build docker image
+          name: Build
           command: |
-            echo "Docker Tag: ${DOCKER_TAG}"
-            echo "Projects: ${PROJECTS[@]}"
-            parallel --ungroup "docker build -t railsonservices/{}:${DOCKER_TAG} {}" ::: "${PROJECTS[@]}"
-          no_output_timeout: 30m
+            echo "Building MODULES: ${MODULES[@]}"
+            make build MODULES=${MODULES[@]} DOCKER_REPO=<< parameters.dockerhub_organization >>
       - run:
-          name: Push docker 
+          name: Publish
           command: |
-            parallel --ungroup "docker push << parameters.dockerhub_organization >>/{}:${DOCKER_TAG}" ::: "${PROJECTS[@]}"
+            echo "Publishing MODULES: ${MODULES[@]}"
+            make publish MODULES=${MODULES[@]} DOCKER_REPO=<< parameters.dockerhub_organization >>
+
             # if the branch is master, also push with latest
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
-              parallel "docker tag << parameters.dockerhub_organization >>/{}:${DOCKER_TAG} << parameters.dockerhub_organization >>/{}:latest" ::: "${PROJECTS[@]}"
-              parallel "docker push << parameters.dockerhub_organization >>/{}:latest" ::: "${PROJECTS[@]}"
+              make publish-latest MODULES=${MODULES[@]} DOCKER_REPO=<< parameters.dockerhub_organization >>
             fi
 workflows:
   build:
     jobs:
       - build_docker_image
-
-  # build_cli_only:
-  #   jobs:
-  #     - build_docker_image:
-  #         filters:
-  #           branches:
-  #             only: cli
