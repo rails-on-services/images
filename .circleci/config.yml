@@ -46,16 +46,16 @@ jobs:
           name: Build
           command: |
             echo "Building MODULES: ${MODULES[@]}"
-            make build MODULES=${MODULES[@]} DOCKER_REPO=<< parameters.dockerhub_organization >>
+            MODULES=${MODULES[@]} make -e build DOCKER_REPO=<< parameters.dockerhub_organization >>
       - run:
           name: Publish
           command: |
             echo "Publishing MODULES: ${MODULES[@]}"
-            make publish MODULES=${MODULES[@]} DOCKER_REPO=<< parameters.dockerhub_organization >>
+            MODULES=${MODULES[@]} make -e publish DOCKER_REPO=<< parameters.dockerhub_organization >>
 
             # if the branch is master, also push with latest
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
-              make publish-latest MODULES=${MODULES[@]} DOCKER_REPO=<< parameters.dockerhub_organization >>
+              MODULES=${MODULES[@]} make -e publish-latest DOCKER_REPO=<< parameters.dockerhub_organization >>
             fi
 workflows:
   build:
