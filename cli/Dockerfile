@@ -1,12 +1,13 @@
-FROM ruby:2.6.3-stretch
+FROM debian:stretch
 
 ARG PUID=1000
 ARG PGID=1000
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get update \
     && apt-get install --yes --no-install-recommends \
-      locales sudo openssh-client ca-certificates tar gzip parallel \
-      net-tools netcat unzip zip bzip2 gnupg curl wget less git python-setuptools python-pip \
+      locales sudo openssh-client apt-transport-https ca-certificates tar gzip parallel \
+      software-properties-common bash-completion unzip zip bzip2 gnupg curl wget \
+      less git python-setuptools python-pip \
     && pip install ansible docker-compose \
     && apt-get clean
 
@@ -31,14 +32,17 @@ USER cli
 WORKDIR /home/cli
 ENV SHELL=/bin/bash
 
-# Docker layer cache will never be updated with a basic git clone statement
-# So we use the add statement to get the current version of master; if no change then cached, otherwise rebuild
-ARG SHA=LATEST
-# RUN SHA=$(curl -s 'https://api.github.com/repos/rails-on-services/setup/commits' | grep sha | head -1)
-RUN SHA=$(curl -s 'https://api.github.com/repos/rails-on-services/cli/commits' | grep sha | head -1)
+# setup repo's version to checkout, it can be the a branch name, a tag name, or a commit hash
+# passing exact sha instead of branch name will make sure docker layer cache doesn't cache unexpectedly
+ARG SETUP_VERSION=master
 RUN mkdir -p ros \
     && git clone https://github.com/rails-on-services/setup.git ros/setup \
-    && (cd ros/setup; bash -l -c "./cli.yml") \
+    && (cd ros/setup; git checkout ${SETUP_VERSION}) \
     && (cd ros/setup; bash -l -c "./devops.yml" )
+
+# setup repo's version to checkout, it can be the a branch name, a tag name, or a commit hash
+# passing exact sha instead of branch name will make sure docker layer cache doesn't cache unexpectedly
+ARG CLI_VERSION=master
+RUN cd ros/setup; bash -l -c "./cli.yml --extra-vars ros_cli_version=${CLI_VERSION}"
 
 CMD ["/bin/bash", "-l"]
