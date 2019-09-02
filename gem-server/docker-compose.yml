@@ -1,0 +1,10 @@
+version: '3'
+services:
+  gem_server:
+    image: spoonest/geminabox:latest
+    ports:
+      - "9292:9292"
+    environment:
+      RUBYGEMS_PROXY: 'true'
+    volumes:
+      - ./cache:/webapps/geminabox/data
