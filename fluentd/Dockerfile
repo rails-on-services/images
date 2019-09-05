@@ -32,6 +32,4 @@ COPY fluent.conf /fluentd/etc/
 ENV FLUENTD_OPT=""
 ENV FLUENTD_CONF="fluent.conf"
 
-USER fluent
-
 CMD fluentd -c /fluentd/etc/${FLUENTD_CONF} $FLUENTD_OPT
