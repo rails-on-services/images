@@ -12,13 +12,13 @@ services:
       - "2222:22"
     cap_add:
       - SYS_MODULE
-    environment:
-      AWS_ACCESS_KEY_ID: localstack_does_not_authenticate
-      AWS_SECRET_ACCESS_KEY: so_valid_credentials_are_not_necessary
-      BUCKET_ENDPOINT_URL: http://localstack:4572
-      BUCKET_NAME: sftp
-      # S3 key prefix for the sftp service
-      BUCKET_PREFIX: master
+    # If no values are provided then the default values will be set to localstack
+    # environment:
+      # AWS_ACCESS_KEY_ID: your-access-key-id
+      # AWS_SECRET_ACCESS_KEY: your-secret-access-key
+      # AWS_REGION: your-region
+      # PLATFORM__BUCKET__NAME: your-bucket-name
+      # PLATFORM__BUCKET__FEATURE_SET: optional-feature-set
   wait:
     image: waisbrot/wait
     depends_on:

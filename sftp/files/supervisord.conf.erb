@@ -1,0 +1,47 @@
+# Enable supervisord in non-daemon mode. Disable the logfile as we receive
+# log messages via stdout/err. Set up the child process log directory in case
+# the user doesn't set logging to stdout/err.
+[supervisord]
+nodaemon = true
+logfile = NONE
+pidfile = /var/run/supervisord.pid
+childlogdir = /var/log/supervisor
+
+[inet_http_server]
+port = 9001  
+
+<% mounts.each do |mount| %>
+[program:s3fs-<%= mount.name %>]
+command = <%= s3fs_mount_cmd(mount) %> -f
+autorestart=true
+priority=1
+stdout_logfile = /dev/stdout
+stdout_logfile_maxbytes = 0
+stderr_logfile = /dev/stderr
+stderr_logfile_maxbytes = 0
+<% end %>
+
+# [program:s3fs-config]
+# command = s3fs  %(ENV_BUCKET_NAME)s:/%(ENV_BUCKET_PREFIX)s/sftp/config/ /opt/sftp -o nonempty,noexec,allow_other,mp_umask=022,multireq_max=5 -f %(ENV_MOUNT_OPTIONS)s
+# autorestart=true
+# priority=1
+# stdout_logfile = /dev/stdout
+# stdout_logfile_maxbytes = 0
+# stderr_logfile = /dev/stderr
+# stderr_logfile_maxbytes = 0
+
+[program:sshd]
+command = bash -c 'sleep 5 && /usr/sbin/sshd -D -e'
+autorestart=true
+stdout_logfile = /dev/stdout
+stdout_logfile_maxbytes = 0
+stderr_logfile = /dev/stderr
+stderr_logfile_maxbytes = 0
+
+[program:update-sftp-user]
+command = bash -c 'sleep 5 && /usr/local/bin/update-sftp-user --users-conf=/opt/sftp/users.conf --users-cache=/var/run/sftp/users.conf --watch-change'
+autorestart=true
+stdout_logfile = /dev/stdout
+stdout_logfile_maxbytes = 0
+stderr_logfile = /dev/stderr
+stderr_logfile_maxbytes = 0

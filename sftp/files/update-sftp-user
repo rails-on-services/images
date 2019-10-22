@@ -199,7 +199,7 @@ def main():
         if os.path.isfile(users_conf_path):
             update_users(users_conf_path, users_cache_path)
         else:
-            logger.warn(
+            logger.warning(
                 'Users conf file {} not exist, nothing to do'.format(users_conf_path))
 
 if __name__ == '__main__':
