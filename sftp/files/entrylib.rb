@@ -65,7 +65,7 @@ class Storage
         Console.log("Error creating bucket #{bucket.name}")
       end
     rescue StandardError => error
-      Console.log('Unknown error listing bucket')
+      Console.log("Error listing bucket #{error}")
     end
     false
   end
@@ -182,7 +182,7 @@ class Entrypoint
   def conf_file; '/etc/supervisor/supervisord.conf' end
 
   def client
-    Settings.aws ||= Config::Options.new(ENV.select { |k,v| k.start_with?('AWS') }.transform_keys { |k| k.downcase.gsub('aws_', '') })
+    Settings.aws ||= Config::Options.new(ENV.select { |k,v| k.start_with?('AWS') }.transform_keys { |k| k.downcase.gsub('aws_', '') }.reject { |k| k.eql?('account_id') })
   end
 
   def bucket; Settings.bucket end

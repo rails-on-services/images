@@ -1,25 +1,30 @@
 FROM debian:buster
 
-# ARG os_base_packages='linux-image-4.19.0-6-amd64 kmod s3fs'
 ARG os_base_packages='linux-image-amd64 kmod s3fs'
-ARG os_packages='openssh-server python3 python3-pip tree less vim ruby'
-ARG os_packages='tree less vim'
 
-# Steps done in one RUN layer:
-# - Install packages
-# - OpenSSH needs /var/run/sshd to run
-# - Remove generic host keys, entrypoint generates unique keys
+# Install base packages
 RUN DEBIAN_FRONTEND=noninteractive apt-get update \
     && apt-get upgrade --yes \
-    && apt-get install --yes --no-install-recommends ${os_base_packages} ${os_packages} \
+    && apt-get install --yes --no-install-recommends ${os_base_packages} \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+ARG os_packages='openssh-server python3 python3-pip tree less vim ruby'
+
+# Install additional base packages
+RUN DEBIAN_FRONTEND=noninteractive apt-get update \
+    && apt-get install --yes --no-install-recommends ${os_packages} \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install python and ruby packages
 RUN pip3 install --no-cache-dir setuptools \
     && pip3 install --no-cache-dir supervisor awscli
 
 RUN gem install config aws-sdk-s3 pry
 
+# - OpenSSH needs /var/run/sshd to run
+# - Remove generic host keys, entrypoint generates unique keys
 RUN mkdir -p /var/run/sshd \
     && rm -f /etc/ssh/ssh_host_*key* \
     && echo 'set editing-mode vi' > /root/.inputrc \
