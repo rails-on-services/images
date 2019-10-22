@@ -1,6 +1,6 @@
 FROM debian:stretch
 
-ARG os_base_packages='linux-image-4.9.0-8-amd64 kmod s3fs'
+ARG os_base_packages='llinux-image-amd64 kmod s3fs'
 ARG os_packages='tree less vim'
 
 # Steps done in one RUN layer:
