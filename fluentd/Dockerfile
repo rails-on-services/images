@@ -18,7 +18,7 @@ RUN buildDeps="make gcc g++ libc-dev wget bzip2 gnupg dirmngr" \
         fluent-plugin-s3 \
         fluent-plugin-kafka \
         fluent-plugin-filter-base64-decode \
-        fluent-plugin-avro \
+        fluent-plugin-bigquery \
   && gem sources --clear-all \
   && SUDO_FORCE_REMOVE=yes \
     apt-get purge -y --auto-remove \
