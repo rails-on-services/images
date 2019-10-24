@@ -9,7 +9,7 @@ docker-build:
 	docker build --progress=plain $(BUILD_ARGS) -t $(DOCKER_REPO)/$(IMAGE_NAME) .
 
 .PHONY: docker-kaniko-build
-docker-kaniko-build: 
+docker-kaniko-build:
 	docker run --rm -v $(CURDIR):/workspace \
 	-v ~/.docker:/kaniko/.docker \
 	gcr.io/kaniko-project/executor:latest \
