@@ -19,7 +19,7 @@ RUN buildDeps="make gcc g++ libc-dev wget bzip2 gnupg dirmngr" \
         fluent-plugin-kafka \
         fluent-plugin-filter-base64-decode \
         fluent-plugin-bigquery \
-        fluent-plugin-grafana-loki \
+        fluent-plugin-grafana-loki:1.1.1 \
   && gem sources --clear-all \
   && SUDO_FORCE_REMOVE=yes \
     apt-get purge -y --auto-remove \
