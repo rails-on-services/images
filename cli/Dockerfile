@@ -1,4 +1,4 @@
-FROM debian:stretch
+FROM debian:buster
 
 ARG PUID=1000
 ARG PGID=1000
@@ -7,7 +7,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update \
     && apt-get install --yes --no-install-recommends \
       locales sudo openssh-client apt-transport-https ca-certificates tar gzip parallel \
       software-properties-common bash-completion unzip zip bzip2 gnupg curl wget \
-      less git python-setuptools python-pip python-dev \
+      less git python-setuptools python-pip python-dev build-essential \
     && pip install ansible docker-compose wheel \
     && apt-get clean
 
